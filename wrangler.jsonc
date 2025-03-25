@@ -5,20 +5,11 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "gtfs-static-server",
-	"main": ".open-next/worker.js",
-	"compatibility_date": "2024-11-01",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"minify": true,
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-21",
 	"observability": {
 		"enabled": true
-	},
-	"upload_source_maps": true
+	}
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
