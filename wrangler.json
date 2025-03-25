@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "raspy-breeze-24f9",
+	"name": "gtfs-static-server",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2024-11-01",
 	"compatibility_flags": [
