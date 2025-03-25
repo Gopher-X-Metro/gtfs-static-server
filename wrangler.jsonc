@@ -9,7 +9,7 @@
 	"compatibility_date": "2025-03-21",
 	"observability": {
 		"enabled": true
-	}
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -27,7 +27,10 @@
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
-	// "vars": { "MY_VARIABLE": "production_value" },
+	"vars": { 
+		"SUPABASE_URL" : "https://xluhfkaqfndzxaamobck.supabase.co",
+		"SUPABASE_ANON_KEY" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsdWhma2FxZm5kenhhYW1vYmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzNDM2MTEsImV4cCI6MjA1NzkxOTYxMX0.y7EzwdbFSZQEqW5v8CGV4nKSu-t0WUdd9C9xoAdEdaM"
+	 },
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
