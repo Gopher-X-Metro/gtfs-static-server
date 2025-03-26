@@ -17,6 +17,7 @@
 		"wrangler": "^4.4.0"
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.49.3"
+		"@supabase/supabase-js": "^2.49.3",
+		"jszip": "^3.10.1"
 	}
 }
