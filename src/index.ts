@@ -20,6 +20,12 @@ interface Env {
 	PASSWORD: string;
 }
 
+const corsHeader = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
+	"Access-Control-Max-Age": "86400"
+}
+
 export default {
 	async scheduled(controller, env, ctx) {
 		console.log("cron processed");
@@ -50,8 +56,11 @@ export default {
 			else if (pathname === '/api/get-shapes' && request.method === 'GET') {
 				return handleGetShapes(supabase, searchParams);
 			}
+			else if (pathname === '/api/get-calendar' && request.method === 'GET') {
+				return handleGetCalendar(supabase, searchParams);
+			}
 			else {
-				return new Response('Not Found!', { status: 404 });
+				return new Response('Not Found!', { ...corsHeader, status: 404 });
 			}
 		}
 
@@ -92,11 +101,21 @@ async function handlePostDatabaseRefresh(supabase : SupabaseClient<any, "public"
 	.then(arrayBuffer => JSZip.loadAsync(arrayBuffer)
 	.then(zip => zip)));
 
+	const calendarFile = zip.file("calendar.txt");
 	const routesFile = zip.file("routes.txt");
 	const tripsFile = zip.file("trips.txt");
 	const shapesFile = zip.file("shapes.txt");
 
 	let fileContents, processed;
+
+	console.log("Uploading calendar")
+	truncateTable(supabase, 'calendar');
+	fileContents = await calendarFile?.async("string");
+	processed = fileContents?.split(/\r\n/).filter(n=>n).slice(1).map(line => {
+		const separated = line.split(/,/);
+		return {service_id: separated[0], monday: separated[1], tuesday: separated[2], wednesday: separated[3], thursday: separated[4], friday: separated[5], saturday: separated[6], sunday: separated[7], start_date: separated[8], end_date: separated[9]}
+	})
+	await uploadProcessedData(supabase, processed, dataPacketSize, "calendar");
 
 	console.log("Uploading routes")
 	truncateTable(supabase, 'routes');
@@ -112,18 +131,18 @@ async function handlePostDatabaseRefresh(supabase : SupabaseClient<any, "public"
 	fileContents = await tripsFile?.async("string");
 	processed = fileContents?.split(/\r\n/).filter(n=>n).slice(1).map(line => {
 		const separated = line.split(/,/);
-		return {trip_id: separated[2], route_id: separated[0], shape_id: separated[7], direction_id: separated[4]}
+		return {trip_id: separated[2], service_id: separated[1], route_id: separated[0], shape_id: separated[7], direction_id: separated[4]}
 	})
 	await uploadProcessedData(supabase, processed, dataPacketSize, "trips");
 
-	console.log("Uploading shapes");
-	truncateTable(supabase, 'shapes');
-	fileContents = await shapesFile?.async("string");
-	processed = fileContents?.split(/\r\n/).filter(n=>n).slice(1).map(line => {
-		const separated = line.split(/,/);
-		return {shape_id: separated[0], shape_pt_lat: separated[1], shape_pt_lon: separated[2], shape_pt_sequence: separated[3], shape_dist_traveled: separated[4]}
-	})
-	await uploadProcessedData(supabase, processed, dataPacketSize, "shapes");
+	// console.log("Uploading shapes");
+	// truncateTable(supabase, 'shapes');
+	// fileContents = await shapesFile?.async("string");
+	// processed = fileContents?.split(/\r\n/).filter(n=>n).slice(1).map(line => {
+	// 	const separated = line.split(/,/);
+	// 	return {shape_id: separated[0], shape_pt_lat: separated[1], shape_pt_lon: separated[2], shape_pt_sequence: separated[3], shape_dist_traveled: separated[4]}
+	// })
+	// await uploadProcessedData(supabase, processed, dataPacketSize, "shapes");
 	
 	return new Response("Successful Refresh!");
 }
@@ -133,7 +152,7 @@ async function handleGetTrips(supabase : SupabaseClient<any, "public", any>, sea
 	if (route_id === null) {
 		return new Response(JSON.stringify({ error: "missing route_id" }), {
 			status: 400,
-			headers: { 'Content-Type': 'application/json' },
+			headers: { ...corsHeader, 'Content-Type': 'application/json' },
 		});
 	}
 	
@@ -145,12 +164,12 @@ async function handleGetTrips(supabase : SupabaseClient<any, "public", any>, sea
 	if (error) {
 		return new Response(JSON.stringify({ error: error.message }), {
 			status: 500,
-			headers: { 'Content-Type': 'application/json' },
+			headers: { ...corsHeader, 'Content-Type': 'application/json' },
 		});
 	}
 
 	return new Response(JSON.stringify(data), {
-		headers: { 'Content-Type': 'application/json' },
+		headers: { ...corsHeader, 'Content-Type': 'application/json' },
 	});
 }
 
@@ -160,7 +179,7 @@ async function handleGetShapes(supabase : SupabaseClient<any, "public", any>, se
 	if (shape_id === null) {
 		return new Response(JSON.stringify({ error: "missing shape_id" }), {
 			status: 400,
-			headers: { 'Content-Type': 'application/json' },
+			headers: { ...corsHeader, 'Content-Type': 'application/json' },
 		});
 	}
 	
@@ -172,11 +191,37 @@ async function handleGetShapes(supabase : SupabaseClient<any, "public", any>, se
 	if (error) {
 		return new Response(JSON.stringify({ error: error.message }), {
 		status: 500,
-		headers: { 'Content-Type': 'application/json' },
+		headers: { ...corsHeader, 'Content-Type': 'application/json' },
 		});
 	}
 
 	return new Response(JSON.stringify(data), {
-		headers: { 'Content-Type': 'application/json' },
+		headers: { ...corsHeader, 'Content-Type': 'application/json' },
+	});
+}
+
+async function handleGetCalendar(supabase : SupabaseClient<any, "public", any>, searchParams : URLSearchParams): Promise<Response> {
+	const service_id = searchParams.get("service_id");
+	if (service_id === null) {
+		return new Response(JSON.stringify({ error: "missing service_id" }), {
+			status: 400,
+			headers: { ...corsHeader, 'Content-Type': 'application/json' },
+		});
+	}
+	
+	const { data, error } = await supabase
+	.from('calendar')
+	.select('*')
+	.eq('service_id', service_id);
+
+	if (error) {
+		return new Response(JSON.stringify({ error: error.message }), {
+		status: 500,
+		headers: { ...corsHeader, 'Content-Type': 'application/json' },
+		});
+	}
+
+	return new Response(JSON.stringify(data), {
+		headers: { ...corsHeader, 'Content-Type': 'application/json' },
 	});
 }
